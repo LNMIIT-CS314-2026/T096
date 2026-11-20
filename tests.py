@@ -1,14 +1,3 @@
-"""
-Lab Assignment 8 — Test Case Implementation
-IQAC Activity Tracking System  |  Team T096
-
-Covers all 19 test cases from the assignment document:
-  UC-004 Create Activity:    TC-004-01 to TC-004-06
-  UC-008 Upload Evidence:    TC-008-01 to TC-008-07
-  UC-011 Verify Evidence:    TC-011-01 to TC-011-06
-
-Plus additional edge-case and integration tests for thorough coverage.
-"""
 
 import io
 import os
@@ -30,10 +19,6 @@ from repositories.activity_repository import ActivityRepository
 from utils.file_validator import FileValidator
 from utils.file_store import FileStoreAdapter
 
-
-# ---------------------------------------------------------------------------
-# Configured maximum file size (L) read from the running application
-# ---------------------------------------------------------------------------
 L = Config.MAX_SIZE_BYTES  # 10 * 1024 * 1024 = 10 485 760 bytes
 
 
@@ -104,9 +89,7 @@ class BaseTestCase(unittest.TestCase):
         return self.evidence_repo.findByActivityId(act_id)
 
 
-# ===========================================================================
-# UC-004: Create Activity  (TC-004-01 through TC-004-06)
-# ===========================================================================
+
 class TestUC004_CreateActivity(BaseTestCase):
     """
     TS-004-01  Valid creation and history/assignment notification
@@ -114,9 +97,6 @@ class TestUC004_CreateActivity(BaseTestCase):
     TS-004-03  Incomplete draft and forbidden creation
     """
 
-    # -----------------------------------------------------------------------
-    # TC-004-01  Create a complete activity  (Positive, system, integration)
-    # -----------------------------------------------------------------------
     def test_TC_004_01_create_complete_activity(self):
         """
         Preconditions: Signed-in department coordinator; domain D1 and assignee U1 exist.
@@ -143,9 +123,7 @@ class TestUC004_CreateActivity(BaseTestCase):
         self.assertIsNotNone(reopened)
         self.assertEqual(reopened.title, "Audit 2026")
 
-    # -----------------------------------------------------------------------
-    # TC-004-02  Notify assigned person after creation  (Integration)
-    # -----------------------------------------------------------------------
+
     def test_TC_004_02_notify_assigned_person(self):
         """
         Expected: U1 receives assignment notification; created record remains available.
@@ -164,9 +142,7 @@ class TestUC004_CreateActivity(BaseTestCase):
         reopened = self.activity_service.getActivity(act.activityId)
         self.assertIsNotNone(reopened)
 
-    # -----------------------------------------------------------------------
-    # TC-004-03  Reject missing responsible person or department  (Negative, equivalence)
-    # -----------------------------------------------------------------------
+
     def test_TC_004_03_reject_missing_assignee_and_department(self):
         """
         Input: Valid activity data except assignee and responsible department blank.
@@ -187,9 +163,6 @@ class TestUC004_CreateActivity(BaseTestCase):
         # Department is required
         self.assertTrue("Department" in err_msg or "required" in err_msg.lower())
 
-    # -----------------------------------------------------------------------
-    # TC-004-04  Reject deadline before start date  (Negative, boundary)
-    # -----------------------------------------------------------------------
     def test_TC_004_04_reject_deadline_before_start(self):
         """
         Input: Start 10 Dec 2026; deadline 09 Dec 2026.
@@ -208,9 +181,6 @@ class TestUC004_CreateActivity(BaseTestCase):
         self.assertIsNone(result)
         self.assertIn("Deadline cannot be before", err_msg)
 
-    # -----------------------------------------------------------------------
-    # TC-004-05  Save an incomplete draft  (Alternative, system)
-    # -----------------------------------------------------------------------
     def test_TC_004_05_save_incomplete_draft(self):
         """
         Input: Title only; domain and deadline unset; isDraft true.
@@ -237,9 +207,7 @@ class TestUC004_CreateActivity(BaseTestCase):
         self.assertIsNotNone(reopened)
         self.assertEqual(reopened.title, "Audit draft")
 
-    # -----------------------------------------------------------------------
-    # TC-004-06  Block student from creating an activity  (Negative, security)
-    # -----------------------------------------------------------------------
+
     def test_TC_004_06_block_student_from_creating(self):
         """
         Preconditions: Signed-in student account.
@@ -275,9 +243,6 @@ class TestUC004_CreateActivity(BaseTestCase):
         self.assertIn(b"Access Forbidden", resp_post.data)
 
 
-# ===========================================================================
-# UC-008: Upload Evidence  (TC-008-01 through TC-008-07)
-# ===========================================================================
 class TestUC008_UploadEvidence(BaseTestCase):
     """
     TS-008-01  Valid evidence is stored and linked to activity/uploader
@@ -299,9 +264,6 @@ class TestUC008_UploadEvidence(BaseTestCase):
             if ev.evidenceId != "EV-0091":
                 self.evidence_service.deleteEvidence(ev.evidenceId, "staff01")
 
-    # -----------------------------------------------------------------------
-    # TC-008-01  Upload and retrieve a valid PDF  (Positive, system, integration)
-    # -----------------------------------------------------------------------
     def test_TC_008_01_upload_valid_pdf(self):
         """
         Preconditions: Signed-in U1 assigned to IN_PROGRESS A1; A1 not verified.
@@ -326,9 +288,6 @@ class TestUC008_UploadEvidence(BaseTestCase):
         # Cleanup
         self.evidence_service.deleteEvidence(ev.evidenceId, "staff01")
 
-    # -----------------------------------------------------------------------
-    # TC-008-02  Record evidence upload and update status  (Integration)
-    # -----------------------------------------------------------------------
     def test_TC_008_02_record_upload_and_update_status(self):
         """
         Expected: Status becomes EVIDENCE_UPLOADED; upload recorded once in history.
@@ -353,9 +312,6 @@ class TestUC008_UploadEvidence(BaseTestCase):
         # Cleanup
         self.evidence_service.deleteEvidence(ev.evidenceId, "staff01")
 
-    # -----------------------------------------------------------------------
-    # TC-008-03  Reject unsupported file format  (Negative, equivalence)
-    # -----------------------------------------------------------------------
     def test_TC_008_03_reject_unsupported_format(self):
         """
         Input: sample.exe.
@@ -373,9 +329,6 @@ class TestUC008_UploadEvidence(BaseTestCase):
         exe_evidence = [e for e in all_ev if e.fileName == "sample.exe"]
         self.assertEqual(len(exe_evidence), 0)
 
-    # -----------------------------------------------------------------------
-    # TC-008-04  Accept file exactly at the size limit  (Boundary, integration)
-    # -----------------------------------------------------------------------
     def test_TC_008_04_accept_file_at_size_limit(self):
         """
         Input: Valid PDF exactly L bytes.
@@ -395,9 +348,6 @@ class TestUC008_UploadEvidence(BaseTestCase):
         # Cleanup
         self.evidence_service.deleteEvidence(ev.evidenceId, "staff01")
 
-    # -----------------------------------------------------------------------
-    # TC-008-05  Reject file one byte above the limit  (Negative, boundary)
-    # -----------------------------------------------------------------------
     def test_TC_008_05_reject_file_above_limit(self):
         """
         Input: Valid PDF of L+1 bytes.
@@ -410,9 +360,6 @@ class TestUC008_UploadEvidence(BaseTestCase):
         self.assertIsNone(result)
         self.assertIn("exceeds", err_msg.lower()) or self.assertIn("size", err_msg.lower())
 
-    # -----------------------------------------------------------------------
-    # TC-008-06  Block upload after verification  (Negative, system)
-    # -----------------------------------------------------------------------
     def test_TC_008_06_block_upload_after_verification(self):
         """
         Preconditions: A1 is VERIFIED.
@@ -438,9 +385,6 @@ class TestUC008_UploadEvidence(BaseTestCase):
         act.status = ActivityStatus.ASSIGNED
         self.activity_repo.save(act)
 
-    # -----------------------------------------------------------------------
-    # TC-008-07  Block a user not assigned to the activity  (Negative, security)
-    # -----------------------------------------------------------------------
     def test_TC_008_07_block_unassigned_user_upload(self):
         """
         Preconditions: A1 unverified; U2 signed in but A1 assigned to U1.
@@ -473,10 +417,6 @@ class TestUC008_UploadEvidence(BaseTestCase):
         # Student should be forbidden from viewing the activity (and thus uploading)
         self.assertIn(b"Forbidden", resp.data)
 
-
-# ===========================================================================
-# UC-011: Verify Evidence  (TC-011-01 through TC-011-06)
-# ===========================================================================
 class TestUC011_VerifyEvidence(BaseTestCase):
     """
     TS-011-01  Accept submitted evidence with decision and audit history
@@ -494,9 +434,6 @@ class TestUC011_VerifyEvidence(BaseTestCase):
             # Ensure evidence exists
             self._ensure_evidence_exists("ACT-0142", "staff01")
 
-    # -----------------------------------------------------------------------
-    # TC-011-01  Verify satisfactory submitted activity  (Positive, system, integration)
-    # -----------------------------------------------------------------------
     def test_TC_011_01_verify_submitted_activity(self):
         """
         Preconditions: IQAC member signed in; A1 SUBMITTED with evidence and outcome.
@@ -522,10 +459,6 @@ class TestUC011_VerifyEvidence(BaseTestCase):
         history = self.history_service.getActivityHistory("ACT-0142")
         verified_logs = [h for h in history if h.action == "VERIFIED"]
         self.assertTrue(len(verified_logs) >= 1)
-
-    # -----------------------------------------------------------------------
-    # TC-011-02  Send verification notification  (Integration)
-    # -----------------------------------------------------------------------
     def test_TC_011_02_send_verification_notification(self):
         """
         Expected: Relevant users are notified of the decision.
@@ -549,9 +482,6 @@ class TestUC011_VerifyEvidence(BaseTestCase):
         self.assertTrue(len(coord_ver_notifs) >= 1,
                         "Coordinator should receive verification notification")
 
-    # -----------------------------------------------------------------------
-    # TC-011-03  Return activity with reason  (Alternative, integration)
-    # -----------------------------------------------------------------------
     def test_TC_011_03_return_activity_with_reason(self):
         """
         Input: Decision RETURNED; reason 'Missing signed sheet'.
@@ -584,9 +514,6 @@ class TestUC011_VerifyEvidence(BaseTestCase):
         self.assertTrue(len(return_notifs) >= 1,
                         "Assigned user should be notified with the return reason")
 
-    # -----------------------------------------------------------------------
-    # TC-011-04  Reject return without reason  (Negative, equivalence)
-    # -----------------------------------------------------------------------
     def test_TC_011_04_reject_return_without_reason(self):
         """
         Input: Decision RETURNED; reason blank.
@@ -604,9 +531,6 @@ class TestUC011_VerifyEvidence(BaseTestCase):
         act = self.activity_service.getActivity("ACT-0142")
         self.assertEqual(act.status, ActivityStatus.SUBMITTED)
 
-    # -----------------------------------------------------------------------
-    # TC-011-05  Reject verification without evidence  (Negative, system)
-    # -----------------------------------------------------------------------
     def test_TC_011_05_reject_verification_without_evidence(self):
         """
         Preconditions: A3 submitted with recorded outcome but no evidence.
@@ -644,9 +568,6 @@ class TestUC011_VerifyEvidence(BaseTestCase):
         reloaded = self.activity_service.getActivity(act.activityId)
         self.assertEqual(reloaded.status, ActivityStatus.SUBMITTED)
 
-    # -----------------------------------------------------------------------
-    # TC-011-06  Block staff member from verifying  (Negative, security)
-    # -----------------------------------------------------------------------
     def test_TC_011_06_block_staff_from_verifying(self):
         """
         Preconditions: Signed-in staff member; A1 submitted with evidence.
@@ -681,9 +602,6 @@ class TestUC011_VerifyEvidence(BaseTestCase):
         self.assertEqual(act.status, ActivityStatus.SUBMITTED)
 
 
-# ===========================================================================
-# ADDITIONAL / RELEVANT TEST CASES
-# ===========================================================================
 class TestAdditional_UC004(BaseTestCase):
     """Extra edge-case tests for UC-004 Create Activity."""
 
@@ -926,9 +844,6 @@ class TestAdditional_UC011(BaseTestCase):
             self.assertIn("verified", msg_del.lower())
 
 
-# ===========================================================================
-# Web Route Integration Tests for the Three Use Cases
-# ===========================================================================
 class TestWebRouteIntegration(BaseTestCase):
     """Route-level integration tests for UC-004, UC-008, UC-011."""
 
