@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}{{ activity.activityId }} - Activity Details{% endblock %}
+
+{% block content %}
+<div class="screen-header">
+    <h2>Activity Details (<code>{{ activity.activityId }}</code>)</h2>
+    <span class="subtext">Status: <span class="badge badge-status-{{ activity.status.value.lower() }}">{{ activity.status.value }}</span></span>
+</div>
+
+<div class="card meta-header-card">
+    <div class="meta-main-info">
+        <h3>{{ activity.title }}</h3>
+        <div class="meta-badges">
+            <span class="badge badge-dept">{{ activity.departmentId }}</span>
+            <span class="badge badge-priority-{{ activity.priority.value.lower() }}">{{ activity.priority.value }} Priority</span>
+            {% if activity.isOverdue() %}
+                <span class="badge badge-danger">OVERDUE</span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="meta-grid">
+        <div><strong>Assignee:</strong> {{ assignee_name }}</div>
+        <div><strong>Planned Start:</strong> {{ activity.plannedStart or 'Not specified' }}</div>
+        <div><strong>Deadline:</strong> <span class="{% if activity.isOverdue() %}text-danger font-bold{% endif %}">{{ activity.deadline }}</span></div>
+        <div><strong>Domain Criterion:</strong> {{ activity.domainId or 'General' }}</div>
+        <div><strong>Created By:</strong> {{ activity.createdBy }}</div>
+        <div><strong>Created At:</strong> {{ activity.createdAt[:16].replace('T', ' ') }}</div>
+    </div>
+    {% if activity.description %}
+    <div class="activity-desc-box mt-3">
+        <strong>Description / Scope:</strong> {{ activity.description }}
+    </div>
+    {% endif %}
+</div>
+
+<div class="two-column-details">
+    <!-- Left Column: Upload Evidence, Outcome, & Lifecycle Actions -->
+    <div class="column-left">
+        <!-- Upload Evidence Card -->
+        <div class="card section-card">
+            <h3>Upload Supporting Evidence</h3>
+            {% if activity.status.value == 'VERIFIED' %}
+                <div class="alert alert-success">Activity is Verified. Evidence records are permanently locked.</div>
+            {% elif activity.status.value == 'CANCELLED' %}
+                <div class="alert alert-warning">Activity is Cancelled. Evidence cannot be added.</div>
+            {% elif not can_modify %}
+                <div class="alert alert-info">Only the assigned user ({{ assignee_name }}) or department coordinator can upload evidence.</div>
+            {% else %}
+                <form method="POST" action="{{ url_for('activity.upload_evidence', activity_id=activity.activityId) }}" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="evidence_file">Choose Document <span class="required">*</span></label>
+                        <input type="file" id="evidence_file" name="file" accept=".pdf,.docx,.jpg,.jpeg,.png" class="form-control-file" required>
+                        <small class="field-hint">Format: PDF, DOCX, JPG, PNG &bull; Max 10 MB</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">Document Summary / Short Description</label>
+                        <input 
+                            type="text" 
+                            id="description" 
+                            name="description" 
+                            placeholder="e.g. Assessment matrix & verified student marksheet" 
+                            maxlength="250"
+                            class="form-control"
+                        >
+                        <small class="field-hint">Max 250 characters.</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit Evidence</button>
+                </form>
+            {% endif %}
+        </div>
+
+        <!-- Outcome Recording -->
+        <div class="card section-card">
+            <h3>Record Outcome</h3>
+            {% if can_modify and activity.status.value not in ['VERIFIED', 'CANCELLED'] %}
+            <form method="POST" action="{{ url_for('activity.record_outcome', activity_id=activity.activityId) }}">
+                <div class="form-group">
+                    <label for="outcome">Outcome / Findings Summary</label>
+                    <textarea 
+                        id="outcome" 
+                        name="outcome" 
+                        rows="3" 
+                        maxlength="1000"
+                        class="form-control" 
+                        placeholder="Detail specific outcomes, findings, or accomplishments..."
+                    >{{ activity.outcome or '' }}</textarea>
+                    <small class="field-hint">Max 1000 characters.</small>
+                </div>
+                <button type="submit" class="btn btn-secondary">Save Outcome</button>
+            </form>
+            {% else %}
+            <div class="outcome-box">
+                <p>{{ activity.outcome or 'No outcome recorded yet.' }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Submit for Verification -->
+        {% if can_modify and activity.status.value not in ['SUBMITTED', 'VERIFIED', 'CANCELLED'] %}
+        <div class="card section-card">
+            <h3>Submit for Verification</h3>
+            <form method="POST" action="{{ url_for('activity.submit_verification', activity_id=activity.activityId) }}" onsubmit="return confirm('Submit this activity to the IQAC verification queue?');">
+                <button type="submit" class="btn btn-success btn-block" {% if not evidence_list %}disabled title="Upload evidence first"{% endif %}>
+                    Submit for Verification
+                </button>
+                {% if not evidence_list %}
+                <small class="text-danger d-block mt-1">Upload at least one supporting evidence document before submitting.</small>
+                {% endif %}
+            </form>
+        </div>
+        {% endif %}
+
+        <!-- Cancel Activity -->
+        {% if session.get('role') in ['DEPARTMENT_COORDINATOR', 'IQAC_COORDINATOR', 'ADMINISTRATOR'] and activity.status.value not in ['VERIFIED', 'CANCELLED'] %}
+        <div class="card section-card">
+            <h3>Cancel Activity</h3>
+            <form method="POST" action="{{ url_for('activity.cancel_activity', activity_id=activity.activityId) }}" onsubmit="return confirm('Are you sure you want to cancel this activity? This cannot be undone.');">
+                <div class="form-group">
+                    <label for="cancel_reason">Cancellation Reason <span class="required">*</span></label>
+                    <input type="text" id="cancel_reason" name="reason" maxlength="250" placeholder="e.g. Workshop rescheduled to next semester" required class="form-control">
+                    <small class="field-hint">Max 250 characters.</small>
+                </div>
+                <button type="submit" class="btn btn-danger btn-sm">Cancel Activity</button>
+            </form>
+        </div>
+        {% endif %}
+
+        <!-- Edit Activity -->
+        {% if session.get('role') in ['DEPARTMENT_COORDINATOR', 'IQAC_COORDINATOR', 'ADMINISTRATOR'] and activity.status.value not in ['VERIFIED', 'CANCELLED'] %}
+        <div class="card section-card">
+            <h3>Edit Activity Details</h3>
+            <a href="{{ url_for('activity.edit_activity', activity_id=activity.activityId) }}" class="btn btn-secondary btn-sm">Edit Title / Deadline / Priority</a>
+        </div>
+        {% endif %}
+
+        <!-- Reassign Activity -->
+        {% if session.get('role') in ['DEPARTMENT_COORDINATOR', 'IQAC_COORDINATOR', 'ADMINISTRATOR'] and activity.status.value not in ['VERIFIED', 'CANCELLED'] %}
+        <div class="card section-card">
+            <h3>Reassign Activity</h3>
+            <form method="POST" action="{{ url_for('activity.reassign_activity', activity_id=activity.activityId) }}">
+                <div class="form-group">
+                    <label for="new_assignee_id">New Responsible Staff Member</label>
+                    <select id="new_assignee_id" name="new_assignee_id" class="form-control" required>
+                        <option value="">-- Select staff to reassign --</option>
+                        {% for u in staff_users %}
+                        <option value="{{ u.userId }}" {% if u.userId == activity.assignedTo %}selected{% endif %}>
+                            {{ u.name }} ({{ u.role.value }} &bull; {{ u.departmentId or '-' }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-secondary btn-sm">Reassign</button>
+            </form>
+        </div>
+        {% endif %}
+
+        <!-- Progress Status Update + Remarks -->
+        {% if can_modify and activity.status.value not in ['SUBMITTED', 'VERIFIED', 'CANCELLED'] %}
+        <div class="card section-card">
+            <h3>Update Progress Status</h3>
+            <form method="POST" action="{{ url_for('activity.update_status', activity_id=activity.activityId) }}">
+                <div class="form-group">
+                    <label for="status_update">New Status</label>
+                    <select id="status_update" name="status" class="form-control" required>
+                        <option value="">-- Select status --</option>
+                        {% if activity.status.value in ['ASSIGNED', 'IN_PROGRESS', 'EVIDENCE_UPLOADED', 'RETURNED', 'COMPLETED'] %}
+                        <option value="IN_PROGRESS">In Progress</option>
+                        {% endif %}
+                        {% if activity.status.value in ['IN_PROGRESS', 'ASSIGNED', 'RETURNED'] %}
+                        <option value="EVIDENCE_UPLOADED">Evidence Uploaded</option>
+                        {% endif %}
+                        {% if activity.status.value in ['IN_PROGRESS', 'EVIDENCE_UPLOADED', 'RETURNED', 'ASSIGNED'] %}
+                        <option value="COMPLETED">Mark as Completed</option>
+                        {% endif %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="remarks">Progress Remarks</label>
+                    <textarea id="remarks" name="remarks" rows="2" maxlength="500" class="form-control" placeholder="Describe what was done, any blockers, or findings..."></textarea>
+                    <small class="field-hint">Max 500 characters.</small>
+                </div>
+                <button type="submit" class="btn btn-secondary btn-sm">Update Status</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Column: Attached Evidence & Activity History Audit Log -->
+    <div class="column-right">
+        <!-- Attached Evidence Files -->
+        <div class="card section-card">
+            <h3>Attached Evidence Files ({{ evidence_list|length }})</h3>
+            {% if evidence_list %}
+            <div class="evidence-items">
+                {% for ev in evidence_list %}
+                <div class="evidence-box">
+                    <div class="ev-info">
+                        <strong>{{ ev.fileName }}</strong>
+                        <span class="badge badge-secondary">{{ ev.fileType }} &bull; {{ (ev.fileSize / 1024)|round(1) }} KB</span>
+                        <div class="text-muted small-text">{{ ev.description }}</div>
+                        <small class="text-muted">Uploaded: {{ ev.uploadedAt[:16].replace('T', ' ') }} by {{ ev.uploadedBy }}</small>
+                    </div>
+                    <div class="ev-actions">
+                        <a href="{{ url_for('activity.download_evidence', activity_id=activity.activityId, evidence_id=ev.evidenceId) }}" target="_blank" class="btn btn-sm btn-outline">Download</a>
+                        {% if activity.status.value != 'VERIFIED' and can_modify %}
+                        <form method="POST" action="{{ url_for('activity.delete_evidence', activity_id=activity.activityId, evidence_id=ev.evidenceId) }}" onsubmit="return confirm('Remove this evidence file?');" style="display: inline;">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted p-2">No evidence documents uploaded yet.</p>
+            {% endif %}
+        </div>
+
+        <!-- Activity History Audit Trail -->
+        <div class="card section-card">
+            <h3>Activity History Log</h3>
+            {% if history_logs %}
+            <div class="history-timeline">
+                <table class="data-table small-table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Action</th>
+                            <th>User</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in history_logs %}
+                        <tr>
+                            <td><small class="text-muted">{{ log.timestamp }}</small></td>
+                            <td><span class="badge badge-role">{{ log.action }}</span></td>
+                            <td><small>{{ log.performedBy }}</small></td>
+                            <td>
+                                {% if log.oldValue %}
+                                <span class="text-muted">{{ log.oldValue }} &rarr; </span>
+                                {% endif %}
+                                <strong>{{ log.newValue or '' }}</strong>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted p-2">No history records logged yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

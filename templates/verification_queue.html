@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Verification Queue - IQAC System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-titles">
+        <h2>Verification Queue</h2>
+        <p class="text-muted">Activities awaiting IQAC Member review and accreditation check</p>
+    </div>
+</div>
+
+<div class="card table-card">
+    {% if queue %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Department</th>
+                <th>Deadline</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for act in queue %}
+            <tr>
+                <td><code>{{ act.activityId }}</code></td>
+                <td><strong>{{ act.title }}</strong></td>
+                <td><span class="badge badge-dept">{{ act.departmentId }}</span></td>
+                <td>{{ act.deadline }}</td>
+                <td><span class="badge badge-status-{{ act.status.value.lower() }}">{{ act.status.value }}</span></td>
+                <td>
+                    <a href="{{ url_for('verification.review_activity', activity_id=act.activityId) }}" class="btn btn-sm btn-primary">Review</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted p-3">No activities are currently pending verification in the queue.</p>
+    {% endif %}
+</div>
+{% endblock %}

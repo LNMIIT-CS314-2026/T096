@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Quality Reports - IQAC System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-titles">
+        <h2>IQAC Quality Reports</h2>
+        <p class="text-muted">Aggregated quality performance metrics across departments and NAAC criteria</p>
+    </div>
+    <div class="header-actions">
+        <a href="{{ url_for('report.export_report', department_id=report_data.filters.departmentId, domain_id=report_data.filters.domainId, start_date=report_data.filters.startDate, end_date=report_data.filters.endDate) }}" class="btn btn-secondary">
+            &darr; Export to CSV
+        </a>
+    </div>
+</div>
+
+<!-- Report Filters Card -->
+<div class="card filter-card">
+    <form method="GET" action="{{ url_for('report.view_reports') }}" class="filter-form">
+        <div class="form-row">
+            {% if user_role != 'DEPARTMENT_COORDINATOR' %}
+            <div class="form-col">
+                <label for="department_id">Department</label>
+                <select id="department_id" name="department_id" class="form-control">
+                    <option value="All">All Departments</option>
+                    {% for d in departments %}
+                    <option value="{{ d.departmentId }}" {% if report_data.filters.departmentId == d.departmentId %}selected{% endif %}>
+                        {{ d.departmentId }} - {{ d.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% else %}
+            <input type="hidden" name="department_id" value="{{ user_dept }}">
+            {% endif %}
+
+            <div class="form-col">
+                <label for="domain_id">Quality Criterion</label>
+                <select id="domain_id" name="domain_id" class="form-control">
+                    <option value="All">All Criteria</option>
+                    {% for dm in domains %}
+                    <option value="{{ dm.domainId }}" {% if report_data.filters.domainId == dm.domainId %}selected{% endif %}>
+                        {{ dm.domainId }} - {{ dm.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-col">
+                <label for="start_date">Deadline From</label>
+                <input type="date" id="start_date" name="start_date" value="{{ report_data.filters.startDate }}" class="form-control">
+            </div>
+
+            <div class="form-col">
+                <label for="end_date">Deadline To</label>
+                <input type="date" id="end_date" name="end_date" value="{{ report_data.filters.endDate }}" class="form-control">
+            </div>
+
+            <div class="form-col" style="flex: 0 0 100px; align-self: flex-end;">
+                <button type="submit" class="btn btn-primary btn-block">Filter</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Summary KPI Grid -->
+<div class="kpi-grid">
+    <div class="kpi-card kpi-total">
+        <div class="kpi-label">Activities in Scope</div>
+        <div class="kpi-value">{{ report_data.summary.total }}</div>
+    </div>
+    <div class="kpi-card kpi-pending">
+        <div class="kpi-label">Pending</div>
+        <div class="kpi-value">{{ report_data.summary.pending }}</div>
+    </div>
+    <div class="kpi-card kpi-ongoing">
+        <div class="kpi-label">Ongoing / In Progress</div>
+        <div class="kpi-value">{{ report_data.summary.ongoing }}</div>
+    </div>
+    <div class="kpi-card kpi-submitted">
+        <div class="kpi-label">Completed / Submitted</div>
+        <div class="kpi-value">{{ report_data.summary.completed }}</div>
+    </div>
+    <div class="kpi-card kpi-verified">
+        <div class="kpi-label">Verified (Quality Approved)</div>
+        <div class="kpi-value text-success">{{ report_data.summary.verified }}</div>
+    </div>
+    {% if report_data.summary.overdue > 0 %}
+    <div class="kpi-card kpi-overdue alert-pulse">
+        <div class="kpi-label">Overdue Activities</div>
+        <div class="kpi-value text-danger">{{ report_data.summary.overdue }}</div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Criterion-wise Grouped Reports -->
+<div class="criterion-report-container">
+    <div class="section-title-bar" style="margin: 24px 0 16px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <h3 style="font-size: 18px; color: var(--primary-color); margin: 0;">Criterion-wise Quality Performance</h3>
+        <span class="badge badge-info" style="font-size: 12px;">Only VERIFIED activities count towards completed quality targets</span>
+    </div>
+
+    {% if report_data.criterion_groups %}
+        {% for group in report_data.criterion_groups %}
+        <div class="criterion-section">
+            <!-- Criterion Section Header -->
+            <div class="criterion-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span class="badge badge-primary" style="font-size: 13px; font-weight: 700; padding: 4px 10px;">{{ group.domainId }}</span>
+                    <h4 style="margin: 0; font-size: 16px; font-weight: 700; color: #0f172a;">{{ group.domainName }}</h4>
+                </div>
+                <div style="font-size: 13px; color: var(--text-muted);">
+                    <strong>{{ group.summary.total }}</strong> Total {{ 'Activity' if group.summary.total == 1 else 'Activities' }}
+                </div>
+            </div>
+
+            <!-- Criterion Metrics Strip -->
+            <div class="criterion-metrics-strip">
+                <span><strong>Pending:</strong> {{ group.summary.pending }}</span>
+                <span><strong>Ongoing:</strong> {{ group.summary.ongoing }}</span>
+                <span><strong>Completed (Awaiting Review):</strong> {{ group.summary.completed }}</span>
+                <span style="color: var(--success-color);"><strong>Verified (Approved):</strong> {{ group.summary.verified }}</span>
+                {% if group.summary.overdue > 0 %}
+                <span style="color: var(--danger-color); font-weight: 700;"><strong>Overdue:</strong> {{ group.summary.overdue }}</span>
+                {% else %}
+                <span style="color: var(--text-muted);"><strong>Overdue:</strong> 0</span>
+                {% endif %}
+            </div>
+
+            <!-- Activities Table for this Criterion -->
+            <div class="table-responsive">
+                <table class="data-table" style="margin: 0; border: none;">
+                    <thead>
+                        <tr>
+                            <th>Activity ID</th>
+                            <th>Title</th>
+                            <th>Department</th>
+                            <th>Deadline</th>
+                            <th>Status</th>
+                            <th>Assignee</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for act in group.activities %}
+                        <tr class="{% if act.isOverdue() %}row-overdue{% endif %}">
+                            <td><code>{{ act.activityId }}</code></td>
+                            <td>
+                                <a href="{{ url_for('activity.activity_details', activity_id=act.activityId) }}" style="font-weight: 600; color: var(--primary-color);">
+                                    {{ act.title }}
+                                </a>
+                            </td>
+                            <td><span class="badge badge-dept">{{ act.departmentId }}</span></td>
+                            <td>
+                                {{ act.deadline }}
+                                {% if act.isOverdue() %}
+                                <span class="badge badge-danger">OVERDUE</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge badge-status-{{ act.status.value.lower() }}">{{ act.status.value }}</span>
+                                {% if act.status.value == 'VERIFIED' %}
+                                <small style="display: block; color: var(--success-color); font-weight: 600;">Quality Approved</small>
+                                {% elif act.status.value in ['COMPLETED', 'SUBMITTED'] %}
+                                <small style="display: block; color: var(--text-muted);">Pending Verification</small>
+                                {% endif %}
+                            </td>
+                            <td><small>{{ act.assignedTo or 'Unassigned' }}</small></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="card" style="padding: 24px; text-align: center;">
+            <p class="text-muted" style="margin: 0;">No activities match the selected report filter criteria.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}User &amp; Role Management - Administrator{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-titles">
+        <h2>Administrator User &amp; Role Management</h2>
+        <p class="text-muted">Provision roles and manage user account permissions across the institute</p>
+    </div>
+</div>
+
+<div class="card table-card">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>User ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Department</th>
+                <th>Current Role</th>
+                <th>Assign Role</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            <tr>
+                <td><code>{{ u.userId }}</code></td>
+                <td><strong>{{ u.name }}</strong></td>
+                <td>{{ u.email }}</td>
+                <td><span class="badge badge-dept">{{ u.departmentId or 'N/A' }}</span></td>
+                <td><span class="badge badge-role">{{ u.role.value }}</span></td>
+                <td>
+                    <form method="POST" action="{{ url_for('admin.assign_role', user_id=u.userId) }}" style="display: flex; gap: 8px;">
+                        <select name="role" class="form-control" style="width: 220px; font-size: 0.85rem;">
+                            {% for r in roles %}
+                            <option value="{{ r }}" {% if u.role.value == r %}selected{% endif %}>{{ r }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-primary">Update</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

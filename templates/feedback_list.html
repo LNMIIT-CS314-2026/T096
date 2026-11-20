@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Feedback Forms - IQAC Portal{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-titles">
+        <h2>Feedback &amp; Survey Forms</h2>
+        <p class="text-muted">Participate in IQAC quality assessment feedback</p>
+    </div>
+    <div class="header-actions">
+        {% if session.get('role') in ['IQAC_COORDINATOR', 'ADMINISTRATOR'] %}
+        <a href="{{ url_for('feedback.create_feedback_form') }}" class="btn btn-primary">+ Create Feedback Form</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card table-card">
+    {% if forms_with_status %}
+    <div style="padding: 16px 20px;">
+        {% for item in forms_with_status %}
+        {% set f = item.form %}
+        <div class="feedback-card-item" style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px; background-color: #fafafa;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h3 style="margin-bottom: 4px;">{{ f.title }}</h3>
+                    <p class="text-muted small-text">Linked Activity: <code>{{ f.activityId }}</code> &bull; Published: {{ f.createdAt[:10] }}</p>
+                </div>
+                <div>
+                    {% if f.isOpen %}
+                        <span class="badge badge-success">Open for Submission</span>
+                    {% else %}
+                        <span class="badge badge-danger">Closed</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if session.get('role') == 'STUDENT' %}
+                {% if item.has_submitted %}
+                    <div class="alert alert-info mt-3" style="padding: 8px 12px; margin-bottom: 0;">
+                        &check; You have already submitted feedback for this form.
+                    </div>
+                {% elif f.isOpen and item.accepting %}
+                    <form method="POST" action="{{ url_for('feedback.submit_feedback', form_id=f.formId) }}" class="mt-3" style="background: #fff; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                        <div class="form-row">
+                            <div class="form-col" style="flex: 0 0 160px;">
+                                <label for="rating_{{ f.formId }}">Rating (1 to 5) <span class="required">*</span></label>
+                                <select id="rating_{{ f.formId }}" name="rating" class="form-control" required>
+                                    <option value="5" selected>5 - Excellent</option>
+                                    <option value="4">4 - Good</option>
+                                    <option value="3">3 - Satisfactory</option>
+                                    <option value="2">2 - Needs Improvement</option>
+                                    <option value="1">1 - Poor</option>
+                                </select>
+                            </div>
+                            <div class="form-col">
+                                <label for="comments_{{ f.formId }}">Feedback / Observations</label>
+                                <input type="text" id="comments_{{ f.formId }}" name="comments" maxlength="500" placeholder="Share your suggestions or evaluation..." class="form-control">
+                                <small class="field-hint">Max 500 characters.</small>
+                            </div>
+                            <div class="form-col" style="flex: 0 0 140px; align-self: flex-end;">
+                                <button type="submit" class="btn btn-primary btn-block">Submit Feedback</button>
+                            </div>
+                        </div>
+                    </form>
+                {% else %}
+                    <div class="alert alert-warning mt-3" style="padding: 8px 12px; margin-bottom: 0;">
+                        This feedback form is currently closed for submissions (outside opening window or closed by coordinator).
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="alert alert-secondary mt-3" style="padding: 10px 14px; margin-bottom: 0; font-size: 0.88rem; background: #f1f5f9; border-left: 4px solid #64748b;">
+                    <strong>Student-Only Evaluation:</strong> Feedback forms are exclusively filled by enrolled Students. Faculty, coordinators, and administrators cannot submit feedback responses.
+                </div>
+            {% endif %}
+
+            {% if session.get('role') != 'STUDENT' %}
+            <div style="margin-top: 10px; text-align: right;">
+                <a href="{{ url_for('feedback.feedback_summary', form_id=f.formId) }}" class="btn btn-sm btn-outline">View Response Summary &rarr;</a>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-muted p-4">No feedback forms are currently open.</p>
+    {% endif %}
+</div>
+{% endblock %}

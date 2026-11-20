@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Login - IQAC User Portal{% endblock %}
+
+{% block content %}
+<div class="auth-card-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h2>IQAC User Authentication</h2>
+            <p class="auth-subtitle">Internal Quality Assurance Cell Portal</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('auth.login') }}" id="login-form" class="auth-form">
+            <div class="form-group">
+                <label for="email">Institutional Email Address <span class="required">*</span></label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    value="{{ email or '' }}" 
+                    placeholder="e.g. user@lnmiit.ac.in" 
+                    maxlength="100"
+                    required 
+                    class="form-control"
+                    autofocus
+                >
+                <small class="form-hint">Max 100 characters.</small>
+            </div>
+
+            <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label for="password" style="margin-bottom: 0;">Password <span class="required">*</span></label>
+                    <a href="{{ url_for('auth.forgot_password') }}" class="btn-link small-text">Forgot Password?</a>
+                </div>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    placeholder="Enter your account password" 
+                    maxlength="64"
+                    required 
+                    class="form-control"
+                >
+                <small class="form-hint">Max 64 characters.</small>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">Sign In with Credentials</button>
+        </form>
+
+        <div style="text-align: center; margin-top: 18px; padding-top: 14px; border-top: 1px solid #e2e8f0;">
+            <span class="text-muted">Don't have an account yet?</span>
+            <a href="{{ url_for('auth.register') }}" class="btn-link">Register here</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

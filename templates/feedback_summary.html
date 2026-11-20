@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Feedback Summary - {{ form.title }}{% endblock %}
+
+{% block content %}
+<div class="screen-header">
+    <h2>Feedback Summary</h2>
+    <span class="subtext">{{ form.title }} (<code>{{ form.formId }}</code>)</span>
+</div>
+
+<div class="kpi-grid">
+    <div class="kpi-card kpi-total">
+        <div class="kpi-label">Total Submissions</div>
+        <div class="kpi-value">{{ responses|length }}</div>
+    </div>
+    <div class="kpi-card kpi-verified">
+        <div class="kpi-label">Average Satisfaction Rating</div>
+        <div class="kpi-value">{{ avg_rating }} / 5.0</div>
+    </div>
+</div>
+
+<div class="card table-card">
+    <div class="panel-header" style="padding: 16px 20px 0 20px;">
+        <h3>Individual Student Responses</h3>
+    </div>
+    {% if responses %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Respondent</th>
+                <th>Rating</th>
+                <th>Comments</th>
+                <th>Submitted At</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in responses %}
+            <tr>
+                <td><code>{{ r.userId }}</code></td>
+                <td>
+                    <span class="badge badge-priority-{% if r.rating >= 4 %}low{% elif r.rating == 3 %}medium{% else %}high{% endif %}">
+                        ★ {{ r.rating }} / 5
+                    </span>
+                </td>
+                <td>{{ r.comments or '<em class="text-muted">No text comment provided</em>'|safe }}</td>
+                <td><small>{{ r.submittedAt[:16].replace('T', ' ') }}</small></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted p-4">No student responses received yet.</p>
+    {% endif %}
+</div>
+
+<div class="mt-3">
+    <a href="{{ url_for('feedback.list_feedback_forms') }}" class="btn btn-outline">&larr; Back to Forms</a>
+</div>
+{% endblock %}

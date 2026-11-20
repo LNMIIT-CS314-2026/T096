@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Activities - IQAC System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-titles">
+        <h2>IQAC Activities</h2>
+        <p class="text-muted">Track and monitor quality initiatives across academic departments</p>
+    </div>
+    <div class="header-actions">
+        {% if session.get('role') in ['DEPARTMENT_COORDINATOR', 'IQAC_COORDINATOR', 'ADMINISTRATOR'] %}
+        <a href="{{ url_for('activity.create_activity') }}" class="btn btn-primary">+ Create Activity</a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card filter-card">
+    <form method="GET" action="{{ url_for('activity.list_activities') }}" class="filter-form">
+        <div class="form-row">
+            <div class="form-col">
+                <label for="status">Filter by Status</label>
+                <select id="status" name="status" class="form-control">
+                    <option value="All">All Statuses</option>
+                    <option value="PLANNED" {% if current_status == 'PLANNED' %}selected{% endif %}>Planned</option>
+                    <option value="ASSIGNED" {% if current_status == 'ASSIGNED' %}selected{% endif %}>Assigned</option>
+                    <option value="IN_PROGRESS" {% if current_status == 'IN_PROGRESS' %}selected{% endif %}>In Progress</option>
+                    <option value="EVIDENCE_UPLOADED" {% if current_status == 'EVIDENCE_UPLOADED' %}selected{% endif %}>Evidence Uploaded</option>
+                    <option value="SUBMITTED" {% if current_status == 'SUBMITTED' %}selected{% endif %}>Submitted</option>
+                    <option value="VERIFIED" {% if current_status == 'VERIFIED' %}selected{% endif %}>Verified</option>
+                    <option value="RETURNED" {% if current_status == 'RETURNED' %}selected{% endif %}>Returned</option>
+                    <option value="CANCELLED" {% if current_status == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
+                </select>
+            </div>
+            <div class="form-col">
+                <label for="department_id">Department</label>
+                <select id="department_id" name="department_id" class="form-control">
+                    <option value="All">All Departments</option>
+                    {% for d in departments %}
+                    <option value="{{ d.departmentId }}" {% if current_dept == d.departmentId %}selected{% endif %}>
+                        {{ d.departmentId }} - {{ d.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-col" style="display: flex; align-items: flex-end; gap: 8px;">
+                <button type="submit" class="btn btn-primary">Filter</button>
+                {% if my_only %}
+                <a href="{{ url_for('activity.list_activities') }}" class="btn btn-outline">Show All</a>
+                {% else %}
+                <a href="{{ url_for('activity.list_activities', my_only='true') }}" class="btn btn-outline-primary">My Assigned Activities (S3)</a>
+                {% endif %}
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Activities Table -->
+<div class="card table-card">
+    {% if activities %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Dept</th>
+                <th>Priority</th>
+                <th>Deadline</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for act in activities %}
+            <tr class="{% if act.isOverdue() %}row-overdue{% endif %}">
+                <td><code>{{ act.activityId }}</code></td>
+                <td>
+                    <strong>{{ act.title }}</strong>
+                    {% if act.description %}
+                    <div class="text-muted small-text">{{ act.description[:70] }}{% if act.description|length > 70 %}...{% endif %}</div>
+                    {% endif %}
+                </td>
+                <td><span class="badge badge-dept">{{ act.departmentId }}</span></td>
+                <td><span class="badge badge-priority-{{ act.priority.value.lower() }}">{{ act.priority.value }}</span></td>
+                <td>
+                    {{ act.deadline }}
+                    {% if act.isOverdue() %}
+                        <span class="badge badge-danger">OVERDUE</span>
+                    {% endif %}
+                </td>
+                <td><span class="badge badge-status-{{ act.status.value.lower() }}">{{ act.status.value }}</span></td>
+                <td>
+                    <a href="{{ url_for('activity.activity_details', activity_id=act.activityId) }}" class="btn btn-sm btn-outline">Details</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted p-3">No activities found matching criteria.</p>
+    {% endif %}
+</div>
+{% endblock %}

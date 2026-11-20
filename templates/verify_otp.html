@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Verify OTP - IQAC User Portal{% endblock %}
+
+{% block content %}
+<div class="auth-card-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h2>Enter Authentication Code</h2>
+            <p class="auth-subtitle">A 6-digit one-time code was sent to <strong>{{ email }}</strong></p>
+        </div>
+
+        <form method="POST" action="{{ url_for('auth.verify_otp') }}" class="auth-form">
+            <input type="hidden" name="email" value="{{ email }}">
+            
+            <div class="form-group">
+                <label for="otp_code">6-Digit OTP Code</label>
+                <input 
+                    type="text" 
+                    id="otp_code" 
+                    name="otp_code" 
+                    maxlength="6" 
+                    pattern="[0-9]{6}" 
+                    placeholder="e.g. 123456" 
+                    required 
+                    autofocus
+                    class="form-control otp-input"
+                >
+                <small class="form-hint">Code expires in 10 minutes (single use).</small>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">Verify &amp; Authenticate</button>
+        </form>
+
+        <div class="auth-footer-actions">
+            <form method="POST" action="{{ url_for('auth.resend_otp') }}" style="display: inline;">
+                <input type="hidden" name="email" value="{{ email }}">
+                <button type="submit" class="btn-link">Resend Code</button>
+            </form>
+            &bull;
+            <a href="{{ url_for('auth.login') }}" class="btn-link">Change Email</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

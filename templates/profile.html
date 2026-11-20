@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}User Profile - IQAC Portal{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-titles">
+        <h2>User Profile</h2>
+        <p class="text-muted">Account details and institutional profiling information</p>
+    </div>
+    <div class="header-actions">
+        <a href="{{ url_for('dashboard.dashboard_view') }}" class="btn btn-outline">&larr; Back to Dashboard</a>
+        <a href="{{ url_for('profile.edit_profile') }}" class="btn btn-primary">Edit Profile Details</a>
+    </div>
+</div>
+
+<div class="card details-card" style="max-width: 800px; margin: 0 auto;">
+    <div class="meta-main-info">
+        <div>
+            <h3 style="font-size: 20px;">{{ user.name }}</h3>
+            <span class="text-muted">{{ user.email }}</span>
+        </div>
+        <div>
+            <span class="badge badge-role" style="font-size: 12px; padding: 4px 10px;">{{ user.role.value }}</span>
+            <span class="badge badge-success" style="font-size: 12px; padding: 4px 10px;">{{ user.accountStatus.value }}</span>
+        </div>
+    </div>
+
+    <table class="key-value-table" style="margin-top: 14px;">
+        <tbody>
+            <tr>
+                <td class="key-label">User ID</td>
+                <td class="value-cell"><code>{{ user.userId }}</code></td>
+            </tr>
+            <tr>
+                <td class="key-label">Full Name</td>
+                <td class="value-cell"><strong>{{ user.name }}</strong></td>
+            </tr>
+            <tr>
+                <td class="key-label">Institutional Email</td>
+                <td class="value-cell">{{ user.email }}</td>
+            </tr>
+            <tr>
+                <td class="key-label">Assigned Role</td>
+                <td class="value-cell"><span class="badge badge-role">{{ user.role.value }}</span></td>
+            </tr>
+            <tr>
+                <td class="key-label">Department Affiliation</td>
+                <td class="value-cell">
+                    {% if department %}
+                        <span class="badge badge-dept">{{ department.departmentId }}</span> &bull; {{ department.name }}
+                    {% else %}
+                        <span class="text-muted">{{ user.departmentId or 'None / General' }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td class="key-label">Contact / Phone</td>
+                <td class="value-cell">{{ user.contactInfo or 'Not provided' }}</td>
+            </tr>
+            <tr>
+                <td class="key-label">Account Status</td>
+                <td class="value-cell">
+                    <span class="badge badge-success">{{ user.accountStatus.value }}</span>
+                </td>
+            </tr>
+            <tr>
+                <td class="key-label">Account Registered</td>
+                <td class="value-cell text-muted">{{ user.createdAt[:16].replace('T', ' ') if user.createdAt else 'N/A' }}</td>
+            </tr>
+            <tr>
+                <td class="key-label">Last Updated</td>
+                <td class="value-cell text-muted">{{ user.updatedAt[:16].replace('T', ' ') if user.updatedAt else 'N/A' }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="card-footer-actions">
+        <a href="{{ url_for('profile.edit_profile') }}" class="btn btn-primary">Edit Profile Information</a>
+        <a href="{{ url_for('profile.edit_profile') }}#password-section" class="btn btn-outline">Change Account Password</a>
+        <a href="{{ url_for('dashboard.dashboard_view') }}" class="btn btn-secondary">Dashboard</a>
+    </div>
+</div>
+{% endblock %}

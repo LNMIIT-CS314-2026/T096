@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Create Activity - IQAC System{% endblock %}
+
+{% block content %}
+<div class="screen-header">
+    <h2>Create Activity</h2>
+    <span class="subtext">Initiate and plan an institutional quality tracking activity</span>
+</div>
+
+<div class="card form-card" style="max-width: 820px; margin: 0 auto;">
+    <form method="POST" action="{{ url_for('activity.create_activity') }}">
+        <div class="form-group">
+            <label for="title">Activity Title <span class="required">*</span></label>
+            <input 
+                type="text" 
+                id="title" 
+                name="title" 
+                placeholder="e.g. Course Outcome Attainment Assessment" 
+                maxlength="150" 
+                class="form-control" 
+                required
+            >
+            <small class="field-hint">Max 150 characters.</small>
+        </div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <div class="form-group">
+                    <label for="department_id">Department <span class="required">*</span></label>
+                    <select id="department_id" name="department_id" class="form-control" required {% if user_role == 'DEPARTMENT_COORDINATOR' %}disabled{% endif %}>
+                        {% for d in departments %}
+                        <option value="{{ d.departmentId }}" {% if d.departmentId == user_dept %}selected{% endif %}>
+                            {{ d.departmentId }} - {{ d.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% if user_role == 'DEPARTMENT_COORDINATOR' %}
+                    <input type="hidden" name="department_id" value="{{ user_dept }}">
+                    <small class="field-hint">Restricted to your designated department.</small>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-col">
+                <div class="form-group">
+                    <label for="domain_id">Quality Domain / Criterion <span class="required">*</span></label>
+                    <select id="domain_id" name="domain_id" class="form-control" required>
+                        <option value="">-- Select NAAC Criterion --</option>
+                        {% for dm in domains %}
+                        <option value="{{ dm.domainId }}">{{ dm.domainId }} - {{ dm.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="field-hint">Select appropriate criterion domain.</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <div class="form-group">
+                    <label for="planned_start">Planned Start Date</label>
+                    <input type="date" id="planned_start" name="planned_start" class="form-control">
+                </div>
+            </div>
+
+            <div class="form-col">
+                <div class="form-group">
+                    <label for="deadline">Deadline <span class="required">*</span></label>
+                    <input type="date" id="deadline" name="deadline" class="form-control" required>
+                    <small class="field-hint">Cannot be before start date.</small>
+                </div>
+            </div>
+
+            <div class="form-col">
+                <div class="form-group">
+                    <label for="priority">Priority <span class="required">*</span></label>
+                    <select id="priority" name="priority" class="form-control" required>
+                        <option value="HIGH">High</option>
+                        <option value="MEDIUM" selected>Medium</option>
+                        <option value="LOW">Low</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="assigned_to">Assign Responsibility (Faculty/Staff)</label>
+            <select id="assigned_to" name="assigned_to" class="form-control">
+                <option value="">-- None (Save as Planned/Draft) --</option>
+                {% for u in staff_users %}
+                <option value="{{ u.userId }}">
+                    {{ u.name }} ({{ u.role.value }} &bull; {{ u.departmentId or '-' }})
+                </option>
+                {% endfor %}
+            </select>
+            <small class="field-hint">Only Faculty/Staff in the selected department are eligible. Assigned user receives a notification.</small>
+        </div>
+
+        <div class="form-group">
+            <label for="description">Instructions / Scope Description</label>
+            <textarea 
+                id="description" 
+                name="description" 
+                rows="3" 
+                maxlength="500" 
+                class="form-control" 
+                placeholder="Outline quality objectives, expected documentation, and deliverables..."
+            ></textarea>
+            <small class="field-hint">Max 500 characters.</small>
+        </div>
+
+        <div class="form-actions-inline">
+            <button type="submit" class="btn btn-primary">Create Activity</button>
+            <a href="{{ url_for('activity.list_activities') }}" class="btn btn-outline">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}IQAC Activity Tracking System{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Top Bar Navigation -->
+    <header class="top-bar">
+        <div class="top-bar-brand">
+            <span class="system-title">IQAC Activity Tracking System</span>
+            <span class="institute-tag">Internal Quality Assurance</span>
+        </div>
+        <div class="top-bar-user">
+            {% if session.get('user_id') %}
+                <a href="{{ url_for('profile.view_profile') }}" class="user-info-link" title="Click to view profile">
+                    <span class="user-info">
+                        <strong>{{ session.get('name') }}</strong>
+                        <span class="badge badge-role">{{ session.get('role') }}</span>
+                        {% if session.get('department_id') %}
+                            <span class="badge badge-dept">{{ session.get('department_id') }}</span>
+                        {% endif %}
+                    </span>
+                </a>
+                <a href="{{ url_for('auth.logout') }}" class="btn-logout">Logout</a>
+            {% else %}
+                <a href="{{ url_for('auth.login') }}" class="btn-login-link">Login</a>
+                <a href="{{ url_for('auth.register') }}" class="btn btn-sm btn-outline">Register</a>
+            {% endif %}
+        </div>
+    </header>
+
+    <div class="layout-container">
+        <!-- Sidebar Navigation -->
+        {% if session.get('user_id') %}
+        <nav class="sidebar">
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="{{ url_for('dashboard.dashboard_view') }}" class="nav-link">
+                        <span class="nav-bullet">&bull;</span> Dashboard
+                    </a>
+                </li>
+                {% if session.get('role') != 'STUDENT' %}
+                <li class="nav-item">
+                    <a href="{{ url_for('activity.list_activities') }}" class="nav-link">
+                        <span class="nav-bullet">&bull;</span> Activities
+                    </a>
+                </li>
+                {% endif %}
+                {% if session.get('role') in ['DEPARTMENT_COORDINATOR', 'IQAC_COORDINATOR', 'ADMINISTRATOR'] %}
+                <li class="nav-item">
+                    <a href="{{ url_for('activity.create_activity') }}" class="nav-link">
+                        <span class="nav-bullet">&bull;</span> Create Activity
+                    </a>
+                </li>
+                {% endif %}
+                {% if session.get('role') in ['IQAC_MEMBER', 'IQAC_COORDINATOR'] %}
+                <li class="nav-item">
+                    <a href="{{ url_for('verification.verification_queue') }}" class="nav-link">
+                        <span class="nav-bullet">&bull;</span> Verification Queue
+                    </a>
+                </li>
+                {% endif %}
+                {% if session.get('role') in ['DEPARTMENT_COORDINATOR', 'IQAC_MEMBER', 'IQAC_COORDINATOR', 'ADMINISTRATOR'] %}
+                <li class="nav-item">
+                    <a href="{{ url_for('report.view_reports') }}" class="nav-link">
+                        <span class="nav-bullet">&bull;</span> Quality Reports
+                    </a>
+                </li>
+                {% endif %}
+                <li class="nav-item">
+                    <a href="{{ url_for('feedback.list_feedback_forms') }}" class="nav-link">
+                        <span class="nav-bullet">&bull;</span> Feedback Forms
+                    </a>
+                </li>
+                {% if session.get('role') == 'ADMINISTRATOR' %}
+                <li class="nav-item">
+                    <a href="{{ url_for('admin.list_users') }}" class="nav-link">
+                        <span class="nav-bullet">&bull;</span> User Management
+                    </a>
+                </li>
+                {% endif %}
+                {% if session.get('role') == 'IQAC_COORDINATOR' %}
+                <li class="nav-item">
+                    <a href="{{ url_for('activity.manage_criteria') }}" class="nav-link">
+                        <span class="nav-bullet">&bull;</span> Quality Criteria
+                    </a>
+                </li>
+                {% endif %}
+                <li class="nav-item">
+                    <a href="{{ url_for('profile.view_profile') }}" class="nav-link">
+                        <span class="nav-bullet">&bull;</span> Profile
+                    </a>
+                </li>
+                <li class="nav-item nav-logout">
+                    <a href="{{ url_for('auth.logout') }}" class="nav-link text-danger">
+                        <span class="nav-bullet">&bull;</span> Logout
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        {% endif %}
+
+        <!-- Main Content Area -->
+        <main class="main-content {% if not session.get('user_id') %}full-width{% endif %}">
+            <!-- Flash Alerts -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-container">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - IQAC Activity Tracking System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-titles">
+        <h2>Dashboard</h2>
+        <p class="text-muted">Welcome, {{ user.name }} &bull; {{ user.role.value }}{% if department %} ({{ department.departmentId }}){% endif %}</p>
+    </div>
+    <div class="header-actions">
+        {% if session.get('role') in ['DEPARTMENT_COORDINATOR', 'IQAC_COORDINATOR', 'ADMINISTRATOR'] %}
+        <a href="{{ url_for('activity.create_activity') }}" class="btn btn-primary">+ Create Activity</a>
+        {% endif %}
+        <a href="{{ url_for('profile.view_profile') }}" class="btn btn-secondary">View Profile</a>
+    </div>
+</div>
+
+<!-- KPI Dashboard Cards (Pending, Ongoing, Completed, Overdue, Verified) -->
+<!-- Only shown to IQAC/Admin/Dept Coordinator; Students and Faculty see only their assigned work -->
+{% if counts %}
+<div class="kpi-grid">
+    <div class="kpi-card kpi-total">
+        <div class="kpi-label">Total Activities</div>
+        <div class="kpi-value">{{ counts.total }}</div>
+    </div>
+    <div class="kpi-card kpi-pending">
+        <div class="kpi-label">Pending</div>
+        <div class="kpi-value">{{ counts.pending }}</div>
+    </div>
+    <div class="kpi-card kpi-ongoing">
+        <div class="kpi-label">Ongoing</div>
+        <div class="kpi-value">{{ counts.ongoing }}</div>
+    </div>
+    <div class="kpi-card kpi-submitted">
+        <div class="kpi-label">Completed / Submitted</div>
+        <div class="kpi-value">{{ counts.completed }}</div>
+    </div>
+    <div class="kpi-card kpi-verified">
+        <div class="kpi-label">Verified (Quality Approved)</div>
+        <div class="kpi-value">{{ counts.verified }}</div>
+    </div>
+    {% if counts.overdue > 0 %}
+    <div class="kpi-card kpi-overdue alert-pulse">
+        <div class="kpi-label">Overdue Activities</div>
+        <div class="kpi-value text-danger">{{ counts.overdue }}</div>
+    </div>
+    {% endif %}
+</div>
+{% else %}
+<div class="alert alert-info" style="margin-bottom: 1.5rem;">
+    <strong>Student Feedback Portal</strong> &mdash; Welcome to the IQAC Feedback Portal. Complete student evaluations for institutional activities below.
+</div>
+{% endif %}
+
+<div class="dashboard-sections-grid">
+    {% if session.get('role') == 'STUDENT' %}
+    <!-- Student Feedback Panel -->
+    <div class="dashboard-panel">
+        <div class="panel-header">
+            <h3>Available Feedback Forms</h3>
+            <a href="{{ url_for('feedback.list_feedback_forms') }}" class="btn-link">View All Forms &rarr;</a>
+        </div>
+        <div class="panel-body">
+            {% if available_feedback_forms %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Form ID</th>
+                        <th>Title</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in available_feedback_forms %}
+                    <tr>
+                        <td><code>{{ item.form.formId }}</code></td>
+                        <td><strong>{{ item.form.title }}</strong></td>
+                        <td>
+                            {% if item.has_submitted %}
+                                <span class="badge badge-success">Submitted</span>
+                            {% elif item.accepting %}
+                                <span class="badge badge-primary">Open</span>
+                            {% else %}
+                                <span class="badge badge-secondary">Closed</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if not item.has_submitted and item.accepting %}
+                                <a href="{{ url_for('feedback.list_feedback_forms') }}" class="btn btn-sm btn-primary">Submit Feedback</a>
+                            {% else %}
+                                <a href="{{ url_for('feedback.list_feedback_forms') }}" class="btn btn-sm btn-outline">View</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-muted p-3">No active feedback forms available at this time.</p>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <!-- Recent Activities Table for Faculty / Coordinators / Admins -->
+    <div class="dashboard-panel">
+        <div class="panel-header">
+            <h3>Recent Activities</h3>
+            <a href="{{ url_for('activity.list_activities') }}" class="btn-link">View All Activities &rarr;</a>
+        </div>
+        <div class="panel-body">
+            {% if recent_activities %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Dept</th>
+                        <th>Deadline</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for act in recent_activities %}
+                    <tr class="{% if act.isOverdue() %}row-overdue{% endif %}">
+                        <td><code>{{ act.activityId }}</code></td>
+                        <td><strong>{{ act.title }}</strong></td>
+                        <td><span class="badge badge-dept">{{ act.departmentId }}</span></td>
+                        <td>
+                            {{ act.deadline }}
+                            {% if act.isOverdue() %}
+                                <span class="badge badge-danger">OVERDUE</span>
+                            {% endif %}
+                        </td>
+                        <td><span class="badge badge-status-{{ act.status.value.lower() }}">{{ act.status.value }}</span></td>
+                        <td>
+                            <a href="{{ url_for('activity.activity_details', activity_id=act.activityId) }}" class="btn btn-sm btn-outline">Details</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-muted p-3">No activities registered yet.</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Right Panel: In-App Notifications & Quick Profile Link -->
+    <div class="dashboard-panel">
+        <div class="panel-header">
+            <h3>System Notifications</h3>
+            <span class="badge badge-info">{{ notifications|length }}</span>
+        </div>
+        <div class="panel-body notifications-list">
+            {% if notifications %}
+                {% for n in notifications %}
+                <div class="notif-item">
+                    <div class="notif-content">
+                        <span class="notif-badge badge-assignment">{{ n.notificationType }}</span>
+                        <p class="notif-text">{{ n.message }}</p>
+                    </div>
+                    <div class="notif-meta">
+                        <small class="text-muted">{{ n.createdAt[:16].replace('T', ' ') }}</small>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-muted p-3">No notifications right now.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

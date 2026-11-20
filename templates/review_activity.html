@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Review Activity - {{ activity.activityId }}{% endblock %}
+
+{% block content %}
+<div class="screen-header">
+    <h2>Review Submission (<code>{{ activity.activityId }}</code>)</h2>
+    <span class="subtext">IQAC Verification Review</span>
+</div>
+
+<div class="card meta-header-card">
+    <div class="meta-main-info">
+        <h3>{{ activity.title }}</h3>
+        <div class="meta-badges">
+            <span class="badge badge-dept">{{ activity.departmentId }}</span>
+            <span class="badge badge-status-{{ activity.status.value.lower() }}">{{ activity.status.value }}</span>
+        </div>
+    </div>
+    <div class="meta-grid">
+        <div><strong>Assignee:</strong> {{ assignee_name }}</div>
+        <div><strong>Deadline:</strong> {{ activity.deadline }}</div>
+        <div><strong>Created By:</strong> {{ activity.createdBy }}</div>
+    </div>
+    {% if activity.outcome %}
+    <div class="outcome-box mt-3">
+        <strong>Recorded Outcome:</strong>
+        <p>{{ activity.outcome }}</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Attached Evidence Files -->
+<div class="card section-card">
+    <h3>Attached Evidence Files ({{ evidence_list|length }})</h3>
+    {% if evidence_list %}
+    <div class="evidence-items">
+        {% for ev in evidence_list %}
+        <div class="evidence-box">
+            <div class="ev-info">
+                <strong>{{ ev.fileName }}</strong>
+                <span class="badge badge-secondary">{{ ev.fileType }} &bull; {{ (ev.fileSize / 1024)|round(1) }} KB</span>
+                <div class="text-muted small-text">{{ ev.description }}</div>
+            </div>
+            <div class="ev-actions">
+                <a href="{{ url_for('activity.download_evidence', activity_id=activity.activityId, evidence_id=ev.evidenceId) }}" target="_blank" class="btn btn-sm btn-primary">Open Document</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-danger p-2">No evidence documents attached.</p>
+    {% endif %}
+</div>
+
+<!-- Evaluation Decision Form -->
+<div class="card form-card">
+    <h3>Verification Decision</h3>
+    <form method="POST" action="{{ url_for('verification.decide_verification', activity_id=activity.activityId) }}">
+        <div class="form-group">
+            <label for="comments">Comments / Return Reason (mandatory when returning)</label>
+            <textarea 
+                id="comments" 
+                name="comments" 
+                rows="3" 
+                maxlength="500" 
+                class="form-control" 
+                placeholder="Enter evaluation remarks or mandatory rework instructions..."
+            ></textarea>
+            <small class="field-hint">Max 500 characters. Reason is mandatory when returning an activity for correction.</small>
+        </div>
+
+        <div class="form-actions-bar">
+            <button type="submit" name="action" value="verify" class="btn btn-success" onclick="return confirm('Verify and approve this activity?');">Verify &amp; Accept</button>
+            <button type="submit" name="action" value="return" class="btn btn-warning" onclick="return validateReturn();">Return for Correction</button>
+            <a href="{{ url_for('verification.verification_queue') }}" class="btn btn-outline">Back to Queue</a>
+        </div>
+    </form>
+</div>
+
+<script>
+function validateReturn() {
+    const comments = document.getElementById('comments').value.trim();
+    if (!comments) {
+        alert("Reason is required to return an activity for correction.");
+        document.getElementById('comments').focus();
+        return false;
+    }
+    return confirm("Return this activity to the department coordinator and assignee for rework?");
+}
+</script>
+{% endblock %}
